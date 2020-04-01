@@ -959,6 +959,31 @@ bool CoreChecks::ValidateDescriptorSetBindingData(const CMD_BUFFER_STATE *cb_nod
                         }
                     }
                 }
+                if (descriptor_class == DescriptorClass::ImageSampler) {
+                    VkSampler sampler = static_cast<const ImageSamplerDescriptor *>(descriptor)->GetSampler();
+                    const SAMPLER_STATE *sampler_state = static_cast<const ImageSamplerDescriptor *>(descriptor)->GetSamplerState();
+                    const IMAGE_VIEW_STATE *image_view_state =
+                        static_cast<const ImageSamplerDescriptor *>(descriptor)->GetImageViewState();
+
+                    VkFilter sampler_mag_filter = sampler_state->createInfo.magFilter;
+                    VkFilter sampler_min_filter = sampler_state->createInfo.minFilter;
+                    if ((sampler_mag_filter == VK_FILTER_LINEAR || sampler_min_filter == VK_FILTER_LINEAR) && !(image_view_state->format_features & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+                        std::stringstream error_str;
+                        error_str << "sampler (" << sampler << ") in descriptor set (" << descriptor_set->GetSet()
+                                  << ") is set to use VK_FILTER_LINEAR, then image view's (" << image_view_state->image_view
+                                  << ") format (" << image_view_state->create_info.format << ") MUST contain VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT in its format features.";
+                        *error = error_str.str();
+                        return false;
+                    }
+                    if ((sampler_mag_filter == VK_FILTER_CUBIC_EXT || sampler_min_filter == VK_FILTER_CUBIC_EXT) && !(image_view_state->format_features & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
+                        std::stringstream error_str;
+                        error_str << "sampler (" << sampler << ") in descriptor set (" << descriptor_set->GetSet()
+                            << ") is set to use VK_FILTER_CUBIC_EXT, then image view's (" << image_view_state->image_view
+                            << ") format (" << image_view_state->create_info.format << ") MUST contain VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT in its format features.";
+                        *error = error_str.str();
+                        return false;
+                    }
+                }
             }
         }
     }
