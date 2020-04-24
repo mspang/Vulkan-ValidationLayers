@@ -7830,7 +7830,8 @@ TEST_F(VkLayerTest, CreateImageMaxLimitsViolation) {
 }
 
 TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
-    TEST_DESCRIPTION("Create sampler with a filter and use with image view using a format that does not support the sampler filter.");
+    TEST_DESCRIPTION(
+        "Create sampler with a filter and use with image view using a format that does not support the sampler filter.");
 
     SetTargetApiVersion(VK_API_VERSION_1_1);
     ASSERT_NO_FATAL_FAILURE(InitFramework(m_errorMonitor));
@@ -7842,12 +7843,8 @@ TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
     }
 
     ASSERT_NO_FATAL_FAILURE(InitState(nullptr, nullptr, 0));
-    
-    enum format_types {
-        FLOAT,
-        SINT,
-        UINT
-    };
+
+    enum format_types { FLOAT, SINT, UINT };
 
     struct TestFilterType {
         VkFilter filter = VK_FILTER_LINEAR;
@@ -7939,11 +7936,14 @@ TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
         for (std::pair<VkFormat, format_types> cur_format_pair : formats_to_check) {
             VkFormatProperties props = {};
             vk::GetPhysicalDeviceFormatProperties(gpu(), cur_format_pair.first, &props);
-            if (test_struct.format == VK_FORMAT_UNDEFINED && props.linearTilingFeatures != 0 && (props.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) && !(props.linearTilingFeatures & test_struct.required_format_feature)) {
+            if (test_struct.format == VK_FORMAT_UNDEFINED && props.linearTilingFeatures != 0 &&
+                (props.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) &&
+                !(props.linearTilingFeatures & test_struct.required_format_feature)) {
                 test_struct.format = cur_format_pair.first;
                 test_struct.format_type = cur_format_pair.second;
-            }
-            else if (test_struct.format == VK_FORMAT_UNDEFINED && props.optimalTilingFeatures != 0 && (props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) && !(props.optimalTilingFeatures & test_struct.required_format_feature)) {
+            } else if (test_struct.format == VK_FORMAT_UNDEFINED && props.optimalTilingFeatures != 0 &&
+                       (props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) &&
+                       !(props.optimalTilingFeatures & test_struct.required_format_feature)) {
                 test_struct.format = cur_format_pair.first;
                 test_struct.format_type = cur_format_pair.second;
                 test_struct.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -7985,12 +7985,11 @@ TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
 
         sci.magFilter = test_struct.filter;
         sci.minFilter = test_struct.filter;
-        
+
         if (test_struct.filter == VK_FILTER_CUBIC_IMG) {
             if (cubic_support) {
                 sci.anisotropyEnable = VK_FALSE;
-            }
-            else {
+            } else {
                 printf("%s VK_FILTER_CUBIC_IMG not supported.  Skipping use of VK_FILTER_CUBIC_IMG this test.\n", kSkipPrefix);
                 continue;
             }
@@ -8007,21 +8006,19 @@ TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
         VkImageView view = mpimage.targetView(test_struct.format);
 
         CreatePipelineHelper pipe(*this);
-        VkShaderObj* fs = nullptr;
+        VkShaderObj *fs = nullptr;
 
         pipe.InitInfo();
 
         if (test_struct.format_type == FLOAT) {
             fs = new VkShaderObj(m_device, bindStateFragSamplerShaderText, VK_SHADER_STAGE_FRAGMENT_BIT, this);
-        }
-        else if (test_struct.format_type == SINT) {
+        } else if (test_struct.format_type == SINT) {
             fs = new VkShaderObj(m_device, bindStateFragiSamplerShaderText, VK_SHADER_STAGE_FRAGMENT_BIT, this);
-        }
-        else if (test_struct.format_type == UINT) {
+        } else if (test_struct.format_type == UINT) {
             fs = new VkShaderObj(m_device, bindStateFraguSamplerShaderText, VK_SHADER_STAGE_FRAGMENT_BIT, this);
         }
 
-        pipe.shader_stages_ = { pipe.vs_->GetStageCreateInfo(), fs->GetStageCreateInfo() };
+        pipe.shader_stages_ = {pipe.vs_->GetStageCreateInfo(), fs->GetStageCreateInfo()};
         pipe.dsl_bindings_ = {
             {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, nullptr},
         };
@@ -8034,13 +8031,13 @@ TEST_F(VkLayerTest, SamplerImageViewFormatUnsupportedFilter) {
         m_commandBuffer->begin();
         m_commandBuffer->BeginRenderPass(m_renderPassBeginInfo);
 
-        VkViewport viewport = { 0, 0, 16, 16, 0, 1 };
+        VkViewport viewport = {0, 0, 16, 16, 0, 1};
         vk::CmdSetViewport(m_commandBuffer->handle(), 0, 1, &viewport);
-        VkRect2D scissor = { {0, 0}, {16, 16} };
+        VkRect2D scissor = {{0, 0}, {16, 16}};
         vk::CmdSetScissor(m_commandBuffer->handle(), 0, 1, &scissor);
         vk::CmdBindPipeline(m_commandBuffer->handle(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.pipeline_);
         vk::CmdBindDescriptorSets(m_commandBuffer->handle(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.pipeline_layout_.handle(), 0, 1,
-            &pipe.descriptor_set_->set_, 0, nullptr);
+                                  &pipe.descriptor_set_->set_, 0, nullptr);
 
         m_errorMonitor->SetDesiredFailureMsg(kErrorBit, test_struct.err_msg.c_str());
         m_commandBuffer->Draw(1, 0, 0, 0);
