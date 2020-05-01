@@ -200,6 +200,7 @@ struct MemRange {
 // Data struct for tracking memory object
 struct DEVICE_MEMORY_STATE : public BASE_NODE {
     void *object;  // Dispatchable object used to create this memory (device of swapchain)
+    VkDevice device;
     VkDeviceMemory mem;
     safe_VkMemoryAllocateInfo alloc_info;
     bool is_dedicated;
@@ -224,6 +225,7 @@ struct DEVICE_MEMORY_STATE : public BASE_NODE {
     DEVICE_MEMORY_STATE(void *disp_object, const VkDeviceMemory in_mem, const VkMemoryAllocateInfo *p_alloc_info,
                         uint64_t fake_address)
         : object(disp_object),
+          device(*static_cast<VkDevice*>(disp_object)),
           mem(in_mem),
           alloc_info(p_alloc_info),
           is_dedicated(false),
@@ -237,6 +239,17 @@ struct DEVICE_MEMORY_STATE : public BASE_NODE {
           shadow_pad_size(0),
           p_driver_data(0),
           fake_base_address(fake_address){};
+
+    uint8_t *GetRawData(VkDeviceSize offset, VkDeviceSize size, VkPhysicalDeviceMemoryProperties &mem_props) {
+        if ((mem_props.memoryTypeCount <= alloc_info.memoryTypeIndex) ||
+            ((mem_props.memoryTypes[alloc_info.memoryTypeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0) ||
+            ((offset + size) > alloc_info.allocationSize))
+            return nullptr;
+        uint8_t *pData = nullptr;
+        DispatchMapMemory(device, mem, offset, size, 0, (void **)&pData);
+        DispatchUnmapMemory(device, mem);
+        return pData;
+    }
 };
 
 // Generic memory binding struct to track objects bound to objects
